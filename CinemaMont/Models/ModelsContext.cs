@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
 
 
 namespace CinemaMont.Models
@@ -6,6 +8,23 @@ namespace CinemaMont.Models
     public class ModelsContext : DbContext
     {
         public ModelsContext(DbContextOptions<ModelsContext> options) : base(options) { }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<User>(u =>
+            { 
+                u.Property(x => x.Username).IsRequired();
+                u.HasData(
+                    new User { Type = UserType.BASIC, UserId = 1, Username = "Aleksandar" },
+                    new User { Type = UserType.OWNER, UserId = 2, Username = "Vasilije" },
+                    new User { Type = UserType.ADMIN, UserId = 3, Username = "Ivana" }
+                    );
+            }
+            );
+
+        }
 
         public DbSet<User> Users { get; set; }
         public DbSet<Room> Rooms { get; set; }
@@ -31,9 +50,10 @@ namespace CinemaMont.Models
 
     public class User
     {
-        public UserType Type { get; set; }
         public int UserId { get; set; }
+        public UserType Type { get; set; }
         public string? Username { get; set; }
+        public string? Password { get; set; }
     }
 
     public class Room
@@ -47,7 +67,7 @@ namespace CinemaMont.Models
     {
         public int MovieId { get; set; }
         public string? MovieTitle { get; set; }
-        public DateTime? DateBroadcast { get; set; }
+        public DateOnly DateBroadcast { get; set; }
         public TimeOnly Time { get; set; }
         public Genre Genre { get; set; }
     }
