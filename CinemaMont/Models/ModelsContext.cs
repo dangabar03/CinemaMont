@@ -17,9 +17,9 @@ namespace CinemaMont.Models
             { 
                 u.Property(x => x.Username).IsRequired();
                 u.HasData(
-                    new User { Type = UserType.BASIC, UserId = 1, Username = "Aleksandar" },
-                    new User { Type = UserType.OWNER, UserId = 2, Username = "Vasilije" },
-                    new User { Type = UserType.ADMIN, UserId = 3, Username = "Ivana" }
+                    new User { Type = UserType.BASIC, UserId = 1, Username = "Aleksandar", Password = "1234" },
+                    new User { Type = UserType.OWNER, UserId = 2, Username = "Vasilije", Password = "1234" },
+                    new User { Type = UserType.ADMIN, UserId = 3, Username = "Ivana", Password = "1234" }
                     );
             }
             );
@@ -52,8 +52,8 @@ namespace CinemaMont.Models
     {
         public int UserId { get; set; }
         public UserType Type { get; set; }
-        public string? Username { get; set; }
-        public string? Password { get; set; }
+        public string Username { get; set; } = null!;
+        public string Password { get; set; } = null!;
     }
 
     public class Room
