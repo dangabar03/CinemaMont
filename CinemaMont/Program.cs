@@ -15,7 +15,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(
      policy =>
      {
-         policy.WithOrigins("http://localhost:5500")
+         policy.WithOrigins("http://localhost:5500",
+         "http://127.0.0.1:5500")
          .AllowAnyHeader()
          .AllowAnyMethod();
      });
@@ -96,7 +97,7 @@ app.MapPost("/register", async (IPasswordHasher<User> hasher, ModelsContext db, 
     var user = new User
     {
         Username = dto.Username,
-        Type = dto.Type
+        Type = UserType.BASIC
     };
     user.Password = hasher.HashPassword(user, dto.Password);
 
@@ -106,7 +107,21 @@ app.MapPost("/register", async (IPasswordHasher<User> hasher, ModelsContext db, 
         new UsersDto(user.UserId, user.Type, user.Username));
 });
 
-// app.MapDelete("/movies/{id}" async())
+app.MapPost("/login", async (IPasswordHasher<User> hasher, ModelsContext db, LoginDto dto) =>
+{
+    var user = await db.Users.SingleOrDefaultAsync(u => u.Username == dto.Username);
+    if(user is null)
+    {
+        return Results.BadRequest("This user doesn't exist!");
+    }
 
+    var result = hasher.VerifyHashedPassword(user, user.Password, dto.Password);
+    if(result == PasswordVerificationResult.Failed)
+    {
+        return Results.Unauthorized();
+    }
+    
+    return Results.Ok("BRAVO PAKI, ULOGOVAN SI");
+});
 
 app.Run();
