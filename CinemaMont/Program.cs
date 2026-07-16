@@ -2,7 +2,7 @@ using CinemaMont.Dtos;
 using CinemaMont.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using CinemaMont.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
@@ -10,9 +10,21 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ModelsContext>(opt =>
             opt.UseNpgsql(builder.Configuration.GetConnectionString("ModelsContext")));
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(
+     policy =>
+     {
+         policy.WithOrigins("http://localhost:5500")
+         .AllowAnyHeader()
+         .AllowAnyMethod();
+     });
+});
+
 
 var app = builder.Build();
-    
+app.UseCors();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -56,10 +68,11 @@ app.MapGet("/movies/{id}", async (ModelsContext db, int id) =>
 app.MapDelete("movies/{id}", async (ModelsContext db, int id) =>
 {
     var movie = await db.Movies.FindAsync(id);
-    if(movie is null)
+    if (movie is null)
     {
         return Results.NotFound();
-    }else
+    }
+    else
     {
         db.Movies.Remove(movie);
         await db.SaveChangesAsync();
@@ -69,13 +82,13 @@ app.MapDelete("movies/{id}", async (ModelsContext db, int id) =>
 
 app.MapPost("/register", async (IPasswordHasher<User> hasher, ModelsContext db, CreateUserDto dto) =>
 {
-    if(string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
+    if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password))
     {
         return Results.BadRequest("Username and Password fields are must have!");
     }
 
     var possible = await db.Users.AnyAsync(u => u.Username == dto.Username);
-    if(possible)
+    if (possible)
     {
         return Results.BadRequest("This username already exists!");
     }
@@ -92,6 +105,8 @@ app.MapPost("/register", async (IPasswordHasher<User> hasher, ModelsContext db, 
     return Results.Created($"/users/{user.UserId}",
         new UsersDto(user.UserId, user.Type, user.Username));
 });
+
+// app.MapDelete("/movies/{id}" async())
 
 
 app.Run();
