@@ -24,6 +24,10 @@ btn.addEventListener("click", async (e) => {
         return;
     }
 
-    alert("ULOGOVAN SI:" + email);
-
+    const result = await response.json();
+    console.log(result.token);
+    
+    localStorage.setItem("token", result.token);
+    // window.close();
+    window.open("http://localhost:5500/client/movies.html");
 }); 
