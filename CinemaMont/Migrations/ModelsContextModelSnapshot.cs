@@ -100,6 +100,7 @@ namespace CinemaMont.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserId"));
 
                     b.Property<string>("Password")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("Type")
@@ -117,18 +118,21 @@ namespace CinemaMont.Migrations
                         new
                         {
                             UserId = 1,
+                            Password = "1234",
                             Type = 0,
                             Username = "Aleksandar"
                         },
                         new
                         {
                             UserId = 2,
+                            Password = "1234",
                             Type = 1,
                             Username = "Vasilije"
                         },
                         new
                         {
                             UserId = 3,
+                            Password = "1234",
                             Type = 2,
                             Username = "Ivana"
                         });

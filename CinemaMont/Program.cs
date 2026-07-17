@@ -1,12 +1,31 @@
+using System.Text;
+using CinemaMont.Authentication;
 using CinemaMont.Dtos;
 using CinemaMont.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 
 var builder = WebApplication.CreateBuilder(args);
+var jwt = builder.Configuration.GetSection("Jwt");
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(option =>
+    {
+        option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            In = ParameterLocation.Header,
+            Description = "Please enter a valid token",
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            BearerFormat = "JWT",
+            Scheme = "Bearer"
+        });
+        option.AddSecurityRequirement(document => new() { [new OpenApiSecuritySchemeReference("Bearer", document)] = [] });
+    }
+);
 builder.Services.AddDbContext<ModelsContext>(opt =>
             opt.UseNpgsql(builder.Configuration.GetConnectionString("ModelsContext")));
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
@@ -21,10 +40,33 @@ builder.Services.AddCors(options =>
          .AllowAnyMethod();
      });
 });
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(opt =>
+{
+    opt.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwt["Issuer"],
+        ValidAudience = jwt["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!)),
+        // RoleClaimType = System.Security.Claims.ClaimTypes.Role
+    };
+});
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireAdmin", policy => policy.RequireRole("ADMIN"));
+});
+
+builder.Services.AddScoped<JwtToken>();
+
 
 
 var app = builder.Build();
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
@@ -58,7 +100,7 @@ app.MapPost("/movies", async (ModelsContext db, CreateMovieDto dto) =>
     await db.SaveChangesAsync();
     return Results.Created($"/movies/{movie.MovieId}",
         new MovieDto(movie.MovieId, movie.MovieTitle, movie.DateBroadcast, movie.Time, movie.Genre));
-});
+}).RequireAuthorization("RequireAdmin");
 
 app.MapGet("/movies/{id}", async (ModelsContext db, int id) =>
 {
@@ -107,21 +149,22 @@ app.MapPost("/register", async (IPasswordHasher<User> hasher, ModelsContext db, 
         new UsersDto(user.UserId, user.Type, user.Username));
 });
 
-app.MapPost("/login", async (IPasswordHasher<User> hasher, ModelsContext db, LoginDto dto) =>
+app.MapPost("/login", async (IPasswordHasher<User> hasher, ModelsContext db, LoginDto dto, JwtToken jwt) =>
 {
     var user = await db.Users.SingleOrDefaultAsync(u => u.Username == dto.Username);
-    if(user is null)
+    if (user is null)
     {
         return Results.BadRequest("This user doesn't exist!");
     }
 
     var result = hasher.VerifyHashedPassword(user, user.Password, dto.Password);
-    if(result == PasswordVerificationResult.Failed)
+    if (result == PasswordVerificationResult.Failed)
     {
         return Results.Unauthorized();
     }
-    
-    return Results.Ok("BRAVO PAKI, ULOGOVAN SI");
+
+    var token = jwt.GenerateToken(user);
+    return Results.Ok(new { token });
 });
 
 app.Run();
