@@ -25,7 +25,6 @@ btn.addEventListener("click", async (e) => {
     }
 
     const result = await response.json();
-    console.log(result.token);
     
     localStorage.setItem("token", result.token);
     // window.close();

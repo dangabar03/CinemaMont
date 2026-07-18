@@ -1,3 +1,21 @@
+const btnAddMovie = document.getElementById("add-movie");
+
+//PROMENI OVO, POSTOJI BOLJI NACIN DA SE OVO URADI
+function checkAdmin() {
+    const admin = localStorage.getItem("token");
+
+    const arr = admin.split(".");
+    const payload = arr[1];
+    const decoded = atob(payload);
+    const obj = JSON.parse(decoded);
+
+    const role = obj["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+    if(role !== "ADMIN") {
+        btnAddMovie.hidden = true;
+        return;
+    }
+}
+
 async function getData() {
     const allowedHost = "http://localhost:5129/movies";
     try {
@@ -27,6 +45,7 @@ async function printData() {
     }
 }
 
+checkAdmin();
 printData();
 
 
