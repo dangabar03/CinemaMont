@@ -2,6 +2,7 @@ using System.Text;
 using CinemaMont.Authentication;
 using CinemaMont.Dtos;
 using CinemaMont.Models;
+using CinemaMont.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -59,7 +60,10 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddScoped<JwtToken>();
-
+builder.Services.AddHttpClient<ITmbdService, TmdbService>(client =>
+{
+   client.BaseAddress = new Uri(builder.Configuration["TMDB:BaseUrl"]!); 
+});
 
 
 var app = builder.Build();
@@ -164,6 +168,12 @@ app.MapPost("/login", async (IPasswordHasher<User> hasher, ModelsContext db, Log
 
     var token = jwt.GenerateToken(user);
     return Results.Ok(new { token });
+});
+
+app.MapGet("/movies/popular", async(ITmbdService tmdbService) =>
+{
+   var movies = await tmdbService.GetPopularMoviesAsync();
+   return Results.Ok(movies); 
 });
 
 app.Run();
